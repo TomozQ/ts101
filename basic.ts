@@ -50,3 +50,55 @@ const n: number = user1
 /*
   2.2.6 / 関数
 */
+function sayHello(name: string): string {
+  return `Hello ${name}`
+}
+sayHello('Takuya')
+
+// オプショナルな引数
+function Hello(name: string, greeting?: string): string {
+  return `${greeting} ${name}`
+}
+Hello('Takuya')
+Hello('Takuya', 'Hello')
+
+// デフォルトな値
+function Yahoo(name: string, greeting: string = 'Hello'): string {
+  return `${greeting} ${name}`
+}
+Yahoo('Takuya')           // Hello Takuya
+Yahoo('Takuya', 'Hey')    // Hey Takuya
+
+// 関数を引数に取る関数の型指定
+// 「名前」と「フォーマット関数」を引数として受け取りフォーマットを実行してコンソール出力を行う関数
+function printN(firstName: string, formatter: (name: string) => string) {
+  console.log(formatter(firstName))
+}
+
+// san を末尾につける名前のフォーマット関数
+function formatName(name: string): string {
+  return `${name} san`
+}
+
+printN('Takuya', formatName)
+
+// アロー関数の場合
+let Hey = (name: string): string => `Hello ${name}`
+
+// _____________________________________________
+// 関数の型
+function genBirdsInfo(name: string): string[]{
+  return name.split(',')
+}
+/*
+  引数が文字列で戻り値が配列の関数を引数に取る
+  関数の型を利用
+  (x: string) => string[]
+*/
+function singBirds(birdInfo: (x: string) => string[]): string {
+  return birdInfo('hato, kiji')[0] + ' piyo piyo'
+}
+
+console.log(singBirds(genBirdsInfo))  // hato piyo piyo
+// console.log(singBirds('dobato'))   // 型が合わないためエラー
+// _____________________________________________
