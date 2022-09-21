@@ -20,7 +20,7 @@ user = {
     twitter: true
   }
 }
-console.log(user.social?.facebook)  // true
+console.log(user.social?.facebook) // true
 
 user = { name: 'Takuya' }
 // socialが存在しないケースでも以下のコードは実行時エラーにならない
@@ -32,8 +32,8 @@ console.log(user.social?.facebook)
 // --strictNullChacksを指定してコンパイルする場合、TypeScriptは通常nullの可能性のあるオブジェクトへのアクセスはエラーとして扱う
 // nullでないことを示したいとき、Non-null Assertionという機能で、明示的にコンパイラに問題がないことを伝えられる。
 // userがnullの場合、実行時エラーになる可能性があるプロパティへのアクセスはコンパイルエラー
-function processUser(user?: User){
-  let s = user!.name  // コンパイラにエラーを起こさなくていいとマークをつけているだけで実際実行時にエラーにならないということではない
+function processUser(user?: User) {
+  let s = user!.name // コンパイラにエラーを起こさなくていいとマークをつけているだけで実際実行時にエラーにならないということではない
 }
 
 /*
@@ -41,13 +41,13 @@ function processUser(user?: User){
 */
 // if文やswitch文の条件分岐にて型のチェックをおこなった際、その条件分岐ブロック以降は変数の型を絞り込まれる推論が行われ、これを型ガードと呼ぶ
 // numberとstringのUnion型で定義された引数をtypeofを用いてstring型の判定をするif文を記述したとすると、ifブロック以降の引数である変数は自動的にnumber型であると扱われる。
-function addOne(value: number | string){
-  if (typeof value === 'string'){
+function addOne(value: number | string) {
+  if (typeof value === 'string') {
     return Number(value) + 1
   }
-  return value + 1  // valueはnumberであると推論される
+  return value + 1 // valueはnumberであると推論される
 }
-console.log(addOne(10))   // 11
+console.log(addOne(10)) // 11
 console.log(addOne('20')) // 21
 
 // オプショナルのプロパティとして定義された値をif文で絞り込む際も同様に型ガードの機能により、if文の中ではnull安全なプロパティとして扱うことができる
@@ -58,7 +58,7 @@ type UserType = {
   }
 }
 let response = {} // JSON形式のAPIレスポンスが代入されている想定。UserTypeに型アサーションする
-const user1 = (response as any) as UserType
+const user1 = response as any as UserType
 // オプショナルのプロパティへの型ガードを行う
 if (user1.info) {
   // オプショナルプロパティは以下のプロパティであるuser.info.nameにアクセスしてもエラーにならない
@@ -74,9 +74,9 @@ interface UserInterface {
   age: number
   email: string
 }
-type UserKey = keyof UserInterface  // 'name' | 'age' | 'email'というUnion型になる
+type UserKey = keyof UserInterface // 'name' | 'age' | 'email'というUnion型になる
 
-const key1: UserKey = 'name'  // 代入可能
+const key1: UserKey = 'name' // 代入可能
 const key2: UserKey = 'phone' // エラー
 
 // 第一引数に渡したオブジェクトの型のプロパティ名のUnion型と、第二引数で渡す値が一致しない場合型エラーになる
@@ -87,7 +87,7 @@ function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
 const user2: UserInterface = {
   name: 'Takuya',
   age: 36,
-  email: 'test@example.com',
+  email: 'test@example.com'
 }
 // nameは型のキーに存在するため正しくstring型の値が返る
 const userName = getProperty(user2, 'name')
@@ -107,7 +107,7 @@ let versions: SupportVersions = {
   102: false,
   103: false,
   104: true,
-  'v105': true  // ← error
+  v105: true // ← error
 }
 
 /*
@@ -129,7 +129,7 @@ type UserType3 = {
 
 type UserReadonly = Readonly<UserType3>
 
-let user4: UserType3 = {name: 'Takuya', gender: 'Male'}
+let user4: UserType3 = { name: 'Takuya', gender: 'Male' }
 
 let userReadonly: UserReadonly = { name: 'Takuya', gender: 'Male' }
 user.name = 'Yoshiki'
@@ -143,16 +143,16 @@ const x: unknown = 123
 const y: unknown = 'Hello'
 
 // 関数やプロパティにアクセスした際に、unknown型そのままではコンパイル時にエラーが発生する
-console.log(x.toFixed(1))     // error
-console.log(y.toLowerCase())  // error
+console.log(x.toFixed(1)) // error
+console.log(y.toLowerCase()) // error
 
 // 型安全な状況下で関数やプロパティにアクセスして実行できる
-if(typeof x === 'number'){
+if (typeof x === 'number') {
   console.log(x.toFixed(1)) // 123.0
 }
 
-if(typeof y === 'string'){
-  console.log(y.toLowerCase())  // hello
+if (typeof y === 'string') {
+  console.log(y.toLowerCase()) // hello
 }
 // anyを使用するよりも安全なコードを書くことができる
 
@@ -160,27 +160,27 @@ if(typeof y === 'string'){
   2.5.8 / 非同期のAsync/Await
 */
 // 非同期APIのPromiseの簡易的な構文にあたるものがAsync/Awaitの機能
-function fetchFromServer(id: string): Promise<{success: boolean}> {
-  return new Promise(resolve => {
+function fetchFromServer(id: string): Promise<{ success: boolean }> {
+  return new Promise((resolve) => {
     setTimeout(() => {
-      resolve({success: true})
+      resolve({ success: true })
     }, 100)
   })
 }
 // 非同期処理を含むasync functionの戻り値の型はPromiseとなる
-async function asyncFunc(): Promise<string>{
+async function asyncFunc(): Promise<string> {
   // Promiseな値をawaitすると中身が取り出せる（ようになる）
   const result = await fetchFromServer('111')
   return `The result: ${result.success}`
 }
 // await構文を使うためにはasync functionの中で呼び出す必要がある
-(async() => {
+;(async () => {
   const result = await asyncFunc()
   console.log(result)
 })()
 
 // Promiseとして扱うには以下のように記述する
-asyncFunc().then(result => console.log(result))
+asyncFunc().then((result) => console.log(result))
 
 /*
   2.5.9 / 型定義ファイル
