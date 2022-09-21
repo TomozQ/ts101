@@ -1,262 +1,189 @@
 /*
-  2.3.1 / 型推論
+  2.4.1 / Enum型
 */
-const age = 10
-console.log(age.length) // エラー: ageはnumber型なのでlengthプロパティはない
+/*
+  const Direction = {
+    'Up': 0,
+    'Down': 1,
+    'Left': 2,
+    'Right': 3,
+  }
+*/
+// enumを用いた定数定義
+enum Direction {  // 特に指定しない場合Enumは定義された順番に沿ってゼロから数字が自動的にインクリメントされる
+  Up,
+  Down,
+  Left,
+  Right
+}
 
-const user = {
+let direction: Direction = Direction.Left
+console.log(direction)  // 2という数字が出力される
+// enumを代入した変数に別の型の値を代入しようとするとエラーになる
+direction = 'Left'    // stringを入れようとするとエラー
+
+
+// 文字列ベースのEnum
+enum DirectionStr {
+  Up = 'UP',
+  Down = 'DOWN',
+  Left = 'LEFT',
+  Right = 'RIGHT',
+}
+// 例えばAPIのパラメータとして文字列が渡されたケースを想定
+const value = 'DOWN'
+// 文字列からEnumに変換
+const enumValue = value as DirectionStr
+if (enumValue === DirectionStr.Down) {  // 文字列で渡される値とEnumの定数値を比較する際に便利
+  console.log('Down is selected')
+}
+
+/*
+  2.4.2 / ジェネリック型
+*/
+// クラスや関数において、その中で使う型を抽象化し外部から具体的な型を指定できる機能。
+// 外部から指定される型が異なっても動作するような汎用的なクラスや関数を実装する際に便利
+class Queue<T> {  // Tはクラス内で利用する仮の型の名前
+  // 内部にTの型の配列を初期化する
+  private array: T[] = []
+
+  // Tの型の値を配列に追加
+  push(item: T) {
+    this.array.push(item)
+  }
+
+  // Tの型の配列の最初の値を取り出す
+  pop(): T | undefined {
+    return this.array.shift()
+  }
+}
+// 数値型を扱うキューを生成
+const queue = new Queue<number>()
+queue.push(111)
+queue.push(112)
+queue.push('hoge')    // number型ではないのでエラー
+
+let str = 'fuga'
+str = queue.pop() // strはnumber型ではないのでコンパイル時エラーになる。
+
+/*
+  2.4.3 / Union型とIntersection型
+*/
+// 指定した複数の型の和集合をUnion型・積集合をIntersection型
+
+// Union型は指定したいずれかの型に当てはまれば良い型が生成される
+// 変数や引数の宣言時にUnion型を指定して、numberもしくはstringを受け付けることができる
+function printId(id: number | string) {
+  console.log(id)
+}
+// numberでもstringでも動作する
+printId(11)
+printId('22')
+
+// 型エイリアスとして定義
+type Id = number | string
+
+function printId2(id: Id) {
+  console.log(id)
+}
+
+// 型エイリアス同士を掛け合わせて新たな型を定義
+type Identity = {
+  id: number | string
+  name: string
+}
+type Contact = {
+  name: string
+  email: string
+  phone: string
+}
+// 和集合による新たなUnion型の定義
+// IdentityもしくはContactの型を受けることが可能
+type IdentityOrContact = Identity | Contact
+// OK
+const id1: IdentityOrContact = {
+  id: '111',
   name: 'Takuya',
-  age: 36
 }
-console.log(user.age.length)  // エラー: ageはnumber型なのでlengthプロパティはない
-
-// 関数の戻り値も同様
-function getUser() {
-  return {
-    name: 'Takuya',
-    age: 36
-  }
+// OK
+const contact: IdentityOrContact = {
+  name: 'Takuya',
+  email: 'test@example.com',
+  phone: '012345678'
 }
-const user1 = getUser()
-console.log(user1.age.length) // エラー: ageはnumber型なのでlengthプロパティはない
 
-// 配列の型推論
-const names = ['Takuya', 'Yoshiki', 'Taketo']
-names.forEach((name) => {
-  // nameはstring型として扱われるので下記のように関数名を間違えるとエラーになる。 → toUpperCase()
-  console.log(name.toUppercase())
-})
-
-// 代入先の変数の値が決まっている場合
-// window.confirm関数の返り値はbooleanを返すことをTypeScriptは知っているため代入する関数の型が一致しない場合エラーになる
-window.confirm = () => {
-  console.log('confirm関数')
+// Intersection型は複数の型をマージして一つとなった型
+type Employee = Identity & Contact
+// OK
+const employee: Employee = {
+  id: '111',
+  name: 'Takuya',
+  email: 'test@example.com',
+  phone: '012345678',
+}
+// NG Contact情報のみでの変数定義はできない。Identityのプロパティであるidが必要
+const employeeContact: Employee = {
+  name: 'Takuya',
+  email: 'test@example.com',
+  phone: '012345678',
 }
 
 /*
-  2.3.2 / 型アサーション
+  2.4.4 / リテラル型
 */
-/*
-  document.getElementById() ... TypeScriptはHTMLElement（もしくはnull）が返ってくるということしかわからない。
-  HTMLElementでもそれがdivなのかcanvasなのかでできる操作は異なる。
-  TypeScript上ではdocument.getElementById()で取得できるものの型を感知できないので、divだったら、canvasだったらと自動で判定して処理はしてくれない
-*/
-// JavaScriptではエラーにならないがTypeScriptではコンパイルエラーになる↓
-const myCanvas = document.getElementById('main_canvas')
-console.log(myCanvas.width) // document.getElementById()が返すのはHTMLElementでHTMLCanvasElementではないので型が合わないというエラー
-// 開発者が対象のIDを持つノードがHTMLCanvasElementだとわかっている場合には明示的に型を指定することができる。
-const myCanvas1 = document.getElementById('main_canvas') as HTMLCanvasElement
-console.log(myCanvas1.width)
+// 決まった文字れるや数値しか入らない型という制御が可能
+let postStatus: 'draft' | 'published' | 'deleted'
+postStatus = 'draft'    // OK
+postStatus = 'drafts'   // NG 型宣言にない文字列が割り当てられているためエラー
 
-// 2段階アサーション
-// const result = (response as any) as User
-const hoge: any = 'test'
-const fuga: number = hoge as number // コンパイル時にはnumber型として扱ってエラーが起きないが、実行時にはstringが渡されるためエラーが起きる
-
-/*
-  2.3.3 / 型エイリアス
-*/
-// 型の指定の別名（エイリアス）を設ける機能 大文字始まりにすることが一般的
-// type Name = string
-
-type Point = {
-  x: number
-  y: number
-}
-
-function printPoint(point: Point) {
-  console.log(`x座標は${point.x}です`)
-  console.log(`y座標は${point.y}です`)
-}
-
-printPoint({ x: 100, y: 100 })
-printPoint({ z: 100, t: 100 })  // 型があっていてもプロパティ名が異なるとエラー
-
-// 関数の型も型エイリアスで定義
-type Formatter = (a: string) => string
-
-function printName(firstName: string, formatter: Formatter) {
-  console.log(formatter(firstName))
-}
-
-// オブジェクトのキー名を明記せずに型エイリアスを定義（インデックス型）
-// キー名やキー数が事前に定まらないケースのオブジェクトを定義するときなどに便利
-type Label = {
-  [key: string] : string
-}
-
-const labels: Label = {
-  topTitle: 'トップページのタイトルです',
-  topSubTitle: 'トップページのサブタイトルです',
-  topFeature1: 'トップページの機能1です',
-  topFeature2: 'トップページの機能2です',
-}
-
-// 値部分の型が合わないためエラー
-const hoge: Label = {
-  message: 100
+// 数字に対してのリテラル型
+// -1, 0, 1 いずれかしか返さない型情報を定義
+function compare(a: string, b:string): -1 | 0 | 1 {
+  return a === b ? 0: a > b ? 1 : -1
 }
 
 /*
-  2.3.4 / インターフェイス
+  2.4.5 / never型
 */
-interface Point1 {
-  x: number
-  y: number
+// 決して発生しない値の種類を表す
+// 例えば、常に例外を発生させる関数などで決して値が返されることのない戻り値の型をneverとして定義できる
+// エラーが常に返るような関数で消して値が正常に返らない場合にnever型を指定する
+function error (message: string): never {
+  throw new Error(message)
 }
 
-function printPointer(point: Point1) {
-  console.log(`x座標は${point.x}です`)
-  console.log(`y座標は${point.y}です`)
-  console.log(`z座標は${point.z}です`)
-}
-
-// Point1にzを追加
-interface Point1 {
-  z: number
-}
-
-printPointer({ x: 100, y: 100 })          // 引数のオブジェクトにzが存在しないためエラー
-printPointer({ x: 100, y: 100, z: 100})   // 問題なく動作
-// 型エイリアスは後から同名での型定義はできないが、インターフェイスは拡張可能
-
-//インターフェイスはクラスの振る舞いの型を定義し、implementsを使用してクラスに実装を与えること（委譲）が可能
-interface Point2 {
-  x: number
-  y: number
-  z: number
-}
-
-// MyPointクラスがPoint2インターフェイスをimplementsした際に、zが存在しないためエラー
-class MyPoint implements Point2 {
-  x: number
-  y: number
-}
-
-// インターフェイスのオプショナルなプロパティ
-interface Point3 {
-  x: number
-  y: number
-  z?: number
-}
-// エラーは発生しない
-class MyPoint1 implements Point3 {
-  x: number
-  y: number
-}
-
-// extendsを使った他のインターフェイスの拡張
-interface Colorful {
-  color: string
-}
-interface Circle {
-  radius: number
-}
-// 複数のインターフェイスを継承して新たなインターフェイスを定義
-interface ColorfulCircle extends Colorful, Circle {}
-
-const cc: ColorfulCircle = {
-  color: '赤',
-  radius: 10
-}
-
-/*
-  オブジェクトの型を定義する際にインターフェイスと型エイリアスどちらも利用が可能で、継承に関する細かな機能の違いはあるもののほぼ同等の機能を持つ
-  ただし、TypeScriptの設計思想としてこの2つの機能は少し異なる点がある
-  インターフェイスはクラスやデータの一側面を定義した型、つまり、インターフェイスにマッチする型でもその値意外に他のフィールドやメソッドがある前提でのもの。
-  型エイリアスはオブジェクトの型そのものを表す。
-  オブジェクトそのものではなく、「クラス」や「オブジェクトの一部のプロパティ」や「関数」含む一部の『振る舞い』を定義するものであれば、インターフェイスを利用するのが適している。
-*/
-
-/*
-  2.3.5 / クラス
-*/
-class PointClass {
-  x: number
-  y: number
-
-  // 引数がない場合の初期値を指定
-  constructor(x: number = 0, y: number = 0) {
-    this.x = x
-    this.y = y
+function foo(x: string | number | number[]): boolean {
+  if(typeof x === 'string') {
+    return true
+  }else if (typeof x === 'number'){
+    return false
   }
-
-  moveX(n: number): void {
-    this.x += n
-  }
-
-  moveY(n: number): void {
-    this.y += n
-  }
+  // neverを利用することで明示的に値が返らないことをコンパイラに伝えることができる
+  // neverを使用しないとTypeScriptはコンパイルエラーになる
+  return error('Never happens')
 }
 
-const po = new PointClass()
-po.moveX(10)
-console.log(`${po.x}, ${po.y}`) // 10, 0
-
-// PointClassクラスを継承
-class Point3D extends PointClass {
-  z: number
-
-  constructor(x: number = 0, y: number = 0, z: number = 0){
-    super(x, y) // 継承元のコンストラクタを呼び出す
-    this.z = z
-  }
-
-  moveZ(n: number): void {
-    this.z += n
-  }
+// if文やswitch文でTypeScriptの型の条件分岐に漏れがないことを保証するようなケースがある
+// 関数内switch文でそれぞれのEnum型のチェックをおこなった際に明示的にnever型を使用することで、将来PageTypeが新しく追加された際にswitch文の実装が漏れているとコンパイルエラーを発生させることができる
+// 将来的にも定数が追加される可能性のあるenum型を定義
+enum PageType {
+  ViewProfile,
+  EditProfile,
+  ChangePassword,
 }
 
-const point3D = new Point3D()
-point3D.moveX(10)
-point3D.moveZ(20)
-console.log(`${point3D.x}, ${point3D.y}, ${point3D.z}`) // 10, 0, 20
-
-// インターフェイスに対してimplementsを利用することで、クラスに対する実装の強制が可能
-// Userという、IUserインターフェイスを実装するクラスの例
-interface IUser {
-  name: string
-  age: number
-  sayHello: () => string  // 引数なしで文字列を返す
-}
-
-class User implements IUser {
-  name: string
-  age: number
-
-  constructor(){
-    this.name = ''
-    this.age = 0
-  }
-
-  sayHello(): string {
-    return `こんにちは、私は${this.name}, ${this.age}歳です。`
-  }
-}
-
-const iuser = new User()
-iuser.name = 'Takuya'
-iuser.age = 36
-console.log(iuser.sayHello()) // こんにちは、私はTakuya, 36歳です。
-
-// アクセス修飾子
-class BasePoint3D {
-  public x: number
-  private y: number
-  protected z: number
-}
-// インスタンス化をおこなった場合のアクセス制御の例
-const basePoint = new BasePoint3D()
-basePoint.x // アクセス可
-basePoint.y // アクセス不可
-basePoint.z // アクセス不可
-// クラスを継承した際のアクセス制御の例
-class ChildPoint extends BasePoint3D {
-  constructor(){
-    super()
-    this.x // アクセス可
-    this.y // アクセス不可
-    this.z // アクセス可
+const getTitleText = (type: PageType) => {
+  switch (type) {
+    case PageType.ViewProfile:
+      return 'Setting'
+    case PageType.EditProfile:
+      return 'Edit Profile'
+    case PageType.ChangePassword:
+      return 'Change Password'
+    default:
+      // 決して起きないことをコンパイラに伝えるnever型に代入を行う
+      // これによって仮に将来PageTypeのenum型に定数が新規で追加された際に、コンパイル時にエラーが起きるためバグを未然に防ぐことができる
+      const wrongType: never = type
+      throw new Error(`${wrongType} is not in PageType`)
   }
 }
