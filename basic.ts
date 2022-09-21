@@ -1,189 +1,187 @@
 /*
-  2.4.1 / Enum型
+  2.5.1 / Optional Chaining
 */
-/*
-  const Direction = {
-    'Up': 0,
-    'Down': 1,
-    'Left': 2,
-    'Right': 3,
-  }
-*/
-// enumを用いた定数定義
-enum Direction {  // 特に指定しない場合Enumは定義された順番に沿ってゼロから数字が自動的にインクリメントされる
-  Up,
-  Down,
-  Left,
-  Right
-}
-
-let direction: Direction = Direction.Left
-console.log(direction)  // 2という数字が出力される
-// enumを代入した変数に別の型の値を代入しようとするとエラーになる
-direction = 'Left'    // stringを入れようとするとエラー
-
-
-// 文字列ベースのEnum
-enum DirectionStr {
-  Up = 'UP',
-  Down = 'DOWN',
-  Left = 'LEFT',
-  Right = 'RIGHT',
-}
-// 例えばAPIのパラメータとして文字列が渡されたケースを想定
-const value = 'DOWN'
-// 文字列からEnumに変換
-const enumValue = value as DirectionStr
-if (enumValue === DirectionStr.Down) {  // 文字列で渡される値とEnumの定数値を比較する際に便利
-  console.log('Down is selected')
-}
-
-/*
-  2.4.2 / ジェネリック型
-*/
-// クラスや関数において、その中で使う型を抽象化し外部から具体的な型を指定できる機能。
-// 外部から指定される型が異なっても動作するような汎用的なクラスや関数を実装する際に便利
-class Queue<T> {  // Tはクラス内で利用する仮の型の名前
-  // 内部にTの型の配列を初期化する
-  private array: T[] = []
-
-  // Tの型の値を配列に追加
-  push(item: T) {
-    this.array.push(item)
-  }
-
-  // Tの型の配列の最初の値を取り出す
-  pop(): T | undefined {
-    return this.array.shift()
-  }
-}
-// 数値型を扱うキューを生成
-const queue = new Queue<number>()
-queue.push(111)
-queue.push(112)
-queue.push('hoge')    // number型ではないのでエラー
-
-let str = 'fuga'
-str = queue.pop() // strはnumber型ではないのでコンパイル時エラーになる。
-
-/*
-  2.4.3 / Union型とIntersection型
-*/
-// 指定した複数の型の和集合をUnion型・積集合をIntersection型
-
-// Union型は指定したいずれかの型に当てはまれば良い型が生成される
-// 変数や引数の宣言時にUnion型を指定して、numberもしくはstringを受け付けることができる
-function printId(id: number | string) {
-  console.log(id)
-}
-// numberでもstringでも動作する
-printId(11)
-printId('22')
-
-// 型エイリアスとして定義
-type Id = number | string
-
-function printId2(id: Id) {
-  console.log(id)
-}
-
-// 型エイリアス同士を掛け合わせて新たな型を定義
-type Identity = {
-  id: number | string
+// ネストされたオブジェクトのプロパティが存在するかどうかの条件分岐を簡単に記述できる機能
+// nullになり得るsocialというプロパティを定義
+interface User {
   name: string
+  social?: {
+    facebook: boolean
+    twitter: boolean
+  }
 }
-type Contact = {
+
+let user: User
+
+user = {
+  name: 'Takuya',
+  social: {
+    facebook: true,
+    twitter: true
+  }
+}
+console.log(user.social?.facebook)  // true
+
+user = { name: 'Takuya' }
+// socialが存在しないケースでも以下のコードは実行時エラーにならない
+console.log(user.social?.facebook)
+
+/*
+  2.5.2 / Non-null Assertion Operator
+*/
+// --strictNullChacksを指定してコンパイルする場合、TypeScriptは通常nullの可能性のあるオブジェクトへのアクセスはエラーとして扱う
+// nullでないことを示したいとき、Non-null Assertionという機能で、明示的にコンパイラに問題がないことを伝えられる。
+// userがnullの場合、実行時エラーになる可能性があるプロパティへのアクセスはコンパイルエラー
+function processUser(user?: User){
+  let s = user!.name  // コンパイラにエラーを起こさなくていいとマークをつけているだけで実際実行時にエラーにならないということではない
+}
+
+/*
+  2.5.3 / 型ガード
+*/
+// if文やswitch文の条件分岐にて型のチェックをおこなった際、その条件分岐ブロック以降は変数の型を絞り込まれる推論が行われ、これを型ガードと呼ぶ
+// numberとstringのUnion型で定義された引数をtypeofを用いてstring型の判定をするif文を記述したとすると、ifブロック以降の引数である変数は自動的にnumber型であると扱われる。
+function addOne(value: number | string){
+  if (typeof value === 'string'){
+    return Number(value) + 1
+  }
+  return value + 1  // valueはnumberであると推論される
+}
+console.log(addOne(10))   // 11
+console.log(addOne('20')) // 21
+
+// オプショナルのプロパティとして定義された値をif文で絞り込む際も同様に型ガードの機能により、if文の中ではnull安全なプロパティとして扱うことができる
+type UserType = {
+  info?: {
+    name: string
+    age: number
+  }
+}
+let response = {} // JSON形式のAPIレスポンスが代入されている想定。UserTypeに型アサーションする
+const user1 = (response as any) as UserType
+// オプショナルのプロパティへの型ガードを行う
+if (user1.info) {
+  // オプショナルプロパティは以下のプロパティであるuser.info.nameにアクセスしてもエラーにならない
+  // もしifの条件がない場合はObject is possibly 'undefined' というエラーが発生する。
+  console.log(user1.info.name)
+}
+
+/*
+  2.5.4 / keyofオペレーター
+*/
+interface UserInterface {
   name: string
+  age: number
   email: string
-  phone: string
 }
-// 和集合による新たなUnion型の定義
-// IdentityもしくはContactの型を受けることが可能
-type IdentityOrContact = Identity | Contact
-// OK
-const id1: IdentityOrContact = {
-  id: '111',
-  name: 'Takuya',
-}
-// OK
-const contact: IdentityOrContact = {
-  name: 'Takuya',
-  email: 'test@example.com',
-  phone: '012345678'
-}
+type UserKey = keyof UserInterface  // 'name' | 'age' | 'email'というUnion型になる
 
-// Intersection型は複数の型をマージして一つとなった型
-type Employee = Identity & Contact
-// OK
-const employee: Employee = {
-  id: '111',
-  name: 'Takuya',
-  email: 'test@example.com',
-  phone: '012345678',
+const key1: UserKey = 'name'  // 代入可能
+const key2: UserKey = 'phone' // エラー
+
+// 第一引数に渡したオブジェクトの型のプロパティ名のUnion型と、第二引数で渡す値が一致しない場合型エラーになる
+// T[K]によりキーに対応する型が戻り値の方となる（例えば上記UserInterfaceのageをkeyに渡した場合、戻り値の方はnumberになる）
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key]
 }
-// NG Contact情報のみでの変数定義はできない。Identityのプロパティであるidが必要
-const employeeContact: Employee = {
+const user2: UserInterface = {
   name: 'Takuya',
+  age: 36,
   email: 'test@example.com',
-  phone: '012345678',
+}
+// nameは型のキーに存在するため正しくstring型の値が返る
+const userName = getProperty(user2, 'name')
+// genderはオブジェクトのキーに存在しないためコンパイルエラー
+const userGender = getProperty(user2, 'gender')
+
+/*
+  2.5.5 / インデックス型
+*/
+// オブジェクトのプロパティが可変の時、まとめて型を定義できる。
+// プロパティ名を任意のnumberとして扱う方の定義例
+type SupportVersions = {
+  [env: number]: boolean
+}
+// stringのプロパティに定義した場合エラー
+let versions: SupportVersions = {
+  102: false,
+  103: false,
+  104: true,
+  'v105': true  // ← error
 }
 
 /*
-  2.4.4 / リテラル型
+  2.5.6 / readonly
 */
-// 決まった文字れるや数値しか入らない型という制御が可能
-let postStatus: 'draft' | 'published' | 'deleted'
-postStatus = 'draft'    // OK
-postStatus = 'drafts'   // NG 型宣言にない文字列が割り当てられているためエラー
-
-// 数字に対してのリテラル型
-// -1, 0, 1 いずれかしか返さない型情報を定義
-function compare(a: string, b:string): -1 | 0 | 1 {
-  return a === b ? 0: a > b ? 1 : -1
+type UserType2 = {
+  readonly name: string
+  readonly gender: string
 }
+
+let user3: UserType2 = { name: 'Takuya', gender: 'Male' }
+user3.gender = 'Femail' // error
+
+// Readonly型
+type UserType3 = {
+  name: string
+  gender: string
+}
+
+type UserReadonly = Readonly<UserType3>
+
+let user4: UserType3 = {name: 'Takuya', gender: 'Male'}
+
+let userReadonly: UserReadonly = { name: 'Takuya', gender: 'Male' }
+user.name = 'Yoshiki'
+userReadonly.name = 'Yoshike' // error
 
 /*
-  2.4.5 / never型
+  2.5.7 / unknown
 */
-// 決して発生しない値の種類を表す
-// 例えば、常に例外を発生させる関数などで決して値が返されることのない戻り値の型をneverとして定義できる
-// エラーが常に返るような関数で消して値が正常に返らない場合にnever型を指定する
-function error (message: string): never {
-  throw new Error(message)
+// anyと同様にどんな値でもunknownとして代入することができる
+const x: unknown = 123
+const y: unknown = 'Hello'
+
+// 関数やプロパティにアクセスした際に、unknown型そのままではコンパイル時にエラーが発生する
+console.log(x.toFixed(1))     // error
+console.log(y.toLowerCase())  // error
+
+// 型安全な状況下で関数やプロパティにアクセスして実行できる
+if(typeof x === 'number'){
+  console.log(x.toFixed(1)) // 123.0
 }
 
-function foo(x: string | number | number[]): boolean {
-  if(typeof x === 'string') {
-    return true
-  }else if (typeof x === 'number'){
-    return false
-  }
-  // neverを利用することで明示的に値が返らないことをコンパイラに伝えることができる
-  // neverを使用しないとTypeScriptはコンパイルエラーになる
-  return error('Never happens')
+if(typeof y === 'string'){
+  console.log(y.toLowerCase())  // hello
 }
+// anyを使用するよりも安全なコードを書くことができる
 
-// if文やswitch文でTypeScriptの型の条件分岐に漏れがないことを保証するようなケースがある
-// 関数内switch文でそれぞれのEnum型のチェックをおこなった際に明示的にnever型を使用することで、将来PageTypeが新しく追加された際にswitch文の実装が漏れているとコンパイルエラーを発生させることができる
-// 将来的にも定数が追加される可能性のあるenum型を定義
-enum PageType {
-  ViewProfile,
-  EditProfile,
-  ChangePassword,
+/*
+  2.5.8 / 非同期のAsync/Await
+*/
+// 非同期APIのPromiseの簡易的な構文にあたるものがAsync/Awaitの機能
+function fetchFromServer(id: string): Promise<{success: boolean}> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({success: true})
+    }, 100)
+  })
 }
+// 非同期処理を含むasync functionの戻り値の型はPromiseとなる
+async function asyncFunc(): Promise<string>{
+  // Promiseな値をawaitすると中身が取り出せる（ようになる）
+  const result = await fetchFromServer('111')
+  return `The result: ${result.success}`
+}
+// await構文を使うためにはasync functionの中で呼び出す必要がある
+(async() => {
+  const result = await asyncFunc()
+  console.log(result)
+})()
 
-const getTitleText = (type: PageType) => {
-  switch (type) {
-    case PageType.ViewProfile:
-      return 'Setting'
-    case PageType.EditProfile:
-      return 'Edit Profile'
-    case PageType.ChangePassword:
-      return 'Change Password'
-    default:
-      // 決して起きないことをコンパイラに伝えるnever型に代入を行う
-      // これによって仮に将来PageTypeのenum型に定数が新規で追加された際に、コンパイル時にエラーが起きるためバグを未然に防ぐことができる
-      const wrongType: never = type
-      throw new Error(`${wrongType} is not in PageType`)
-  }
-}
+// Promiseとして扱うには以下のように記述する
+asyncFunc().then(result => console.log(result))
+
+/*
+  2.5.9 / 型定義ファイル
+*/
